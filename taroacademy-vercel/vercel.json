@@ -5,10 +5,6 @@
     {
       "source": "/admin",
       "destination": "/index.html"
-    },
-    {
-      "source": "/((?!app.js|styles.css).*)",
-      "destination": "/index.html"
     }
   ]
 }
