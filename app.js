@@ -35,6 +35,7 @@ let currentStudent = null;
 let currentLessonId = state.lessons[0]?.id || null;
 let supabaseClient = null;
 let isRemoteMode = false;
+let adminCredentials = null;
 
 function hasSupabaseConfig() {
   return Boolean(
@@ -120,15 +121,16 @@ async function loadRemoteLessons() {
 }
 
 async function loadRemoteAdminData() {
+  if (!adminCredentials) throw new Error("Missing admin credentials");
   const [clientsResponse, lessonsResponse] = await Promise.all([
-    supabaseClient
-      .from("clients")
-      .select("id,name,email,status,created_at")
-      .order("created_at", { ascending: false }),
-    supabaseClient
-      .from("lessons")
-      .select("id,title,url,description,sort_order")
-      .order("sort_order", { ascending: true })
+    supabaseClient.rpc("admin_list_clients", {
+      admin_email: adminCredentials.email,
+      admin_password: adminCredentials.password
+    }),
+    supabaseClient.rpc("admin_list_lessons", {
+      admin_email: adminCredentials.email,
+      admin_password: adminCredentials.password
+    })
   ]);
 
   if (clientsResponse.error) throw clientsResponse.error;
@@ -236,8 +238,16 @@ async function setupAdminPage() {
 
     try {
       if (isRemoteMode) {
-        const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+        const { data, error } = await supabaseClient.rpc("admin_ok", {
+          admin_email: email,
+          admin_password: password
+        });
         if (error) throw error;
+        if (!data) {
+          setMessage("adminError", "Админ данните не са правилни.");
+          return;
+        }
+        adminCredentials = { email, password };
         await loadRemoteAdminData();
         showAdminDashboard();
         return;
@@ -264,9 +274,13 @@ async function setupAdminPage() {
 
     try {
       if (isRemoteMode) {
-        const { error } = await supabaseClient
-          .from("clients")
-          .upsert(client, { onConflict: "email" });
+        const { error } = await supabaseClient.rpc("admin_upsert_client", {
+          admin_email: adminCredentials.email,
+          admin_password: adminCredentials.password,
+          client_name: client.name,
+          client_email: client.email,
+          client_status: client.status
+        });
         if (error) throw error;
         await loadRemoteAdminData();
       } else {
@@ -302,7 +316,14 @@ async function setupAdminPage() {
 
     try {
       if (isRemoteMode) {
-        const { error } = await supabaseClient.from("lessons").insert(lesson);
+        const { error } = await supabaseClient.rpc("admin_insert_lesson", {
+          admin_email: adminCredentials.email,
+          admin_password: adminCredentials.password,
+          lesson_title: lesson.title,
+          lesson_url: lesson.url,
+          lesson_description: lesson.description,
+          lesson_sort_order: lesson.sort_order
+        });
         if (error) throw error;
         await loadRemoteAdminData();
       } else {
@@ -470,7 +491,14 @@ async function editClient(id) {
 
   try {
     if (isRemoteMode) {
-      const { error } = await supabaseClient.from("clients").update(updates).eq("id", id);
+      const { error } = await supabaseClient.rpc("admin_update_client", {
+        admin_email: adminCredentials.email,
+        admin_password: adminCredentials.password,
+        client_id: id,
+        client_name: updates.name,
+        client_email: updates.email,
+        client_status: updates.status
+      });
       if (error) throw error;
       await loadRemoteAdminData();
     } else {
@@ -501,7 +529,14 @@ async function editLesson(id) {
 
   try {
     if (isRemoteMode) {
-      const { error } = await supabaseClient.from("lessons").update(updates).eq("id", id);
+      const { error } = await supabaseClient.rpc("admin_update_lesson", {
+        admin_email: adminCredentials.email,
+        admin_password: adminCredentials.password,
+        lesson_id: id,
+        lesson_title: updates.title,
+        lesson_url: updates.url,
+        lesson_description: updates.description
+      });
       if (error) throw error;
       await loadRemoteAdminData();
     } else {
@@ -518,7 +553,11 @@ async function deleteClient(id) {
   if (!confirm("Да изтрия ли този клиент?")) return;
   try {
     if (isRemoteMode) {
-      const { error } = await supabaseClient.from("clients").delete().eq("id", id);
+      const { error } = await supabaseClient.rpc("admin_delete_client", {
+        admin_email: adminCredentials.email,
+        admin_password: adminCredentials.password,
+        client_id: id
+      });
       if (error) throw error;
       await loadRemoteAdminData();
     } else {
@@ -535,7 +574,11 @@ async function deleteLesson(id) {
   if (!confirm("Да изтрия ли този урок?")) return;
   try {
     if (isRemoteMode) {
-      const { error } = await supabaseClient.from("lessons").delete().eq("id", id);
+      const { error } = await supabaseClient.rpc("admin_delete_lesson", {
+        admin_email: adminCredentials.email,
+        admin_password: adminCredentials.password,
+        lesson_id: id
+      });
       if (error) throw error;
       await loadRemoteAdminData();
     } else {

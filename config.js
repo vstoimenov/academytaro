@@ -1,4 +1,4 @@
 window.TAROACADEMY_SUPABASE = {
-  url: "PASTE_SUPABASE_URL_HERE",
-  anonKey: "PASTE_SUPABASE_ANON_KEY_HERE"
+  url: "https://prmcyezugqfmitlhefay.supabase.co",
+  anonKey: "sb_publishable_1PzKvAyH9xMu5G4JW9FhLg_75IAuyGz"
 };
