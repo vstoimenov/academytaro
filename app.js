@@ -18,14 +18,18 @@ const seedState = {
       title: "Добре дошла в TaroAcademy",
       url: "",
       description: "Тук ще стои първото Bunny.net видео. Добави линк от админ екрана.",
-      sort_order: 1
+      sort_order: 1,
+      module_title: "Модул 1: Основи",
+      module_order: 1
     },
     {
       id: crypto.randomUUID(),
       title: "Как да подготвиш първото си четене",
       url: "",
       description: "Кратък стартов урок за първите практически стъпки.",
-      sort_order: 2
+      sort_order: 2,
+      module_title: "Модул 1: Основи",
+      module_order: 1
     }
   ]
 };
@@ -36,6 +40,7 @@ let currentLessonId = state.lessons[0]?.id || null;
 let supabaseClient = null;
 let isRemoteMode = false;
 let adminCredentials = null;
+let progressState = {};
 
 function hasSupabaseConfig() {
   return Boolean(
@@ -112,12 +117,21 @@ function setMessage(id, message) {
 async function loadRemoteLessons() {
   const { data, error } = await supabaseClient
     .from("lessons")
-    .select("id,title,url,description,sort_order")
+    .select("id,title,url,description,sort_order,module_title,module_order")
+    .order("module_order", { ascending: true })
     .order("sort_order", { ascending: true });
 
   if (error) throw error;
   state.lessons = data || [];
   currentLessonId = state.lessons[0]?.id || null;
+}
+
+async function loadRemoteProgress(email) {
+  const { data, error } = await supabaseClient.rpc("get_client_progress", {
+    lookup_email: email
+  });
+  if (error) throw error;
+  progressState = Object.fromEntries((data || []).map((item) => [item.lesson_id, item.completed]));
 }
 
 async function loadRemoteAdminData() {
@@ -168,6 +182,7 @@ async function handleStudentLogin(email) {
     if (!access?.has_access) return null;
 
     await loadRemoteLessons();
+    await loadRemoteProgress(email);
     return {
       id: access.client_id,
       name: access.client_name,
@@ -176,7 +191,12 @@ async function handleStudentLogin(email) {
     };
   }
 
-  return state.clients.find((item) => normalizeEmail(item.email) === email && item.status === "active") || null;
+  const localClient = state.clients.find((item) => normalizeEmail(item.email) === email && item.status === "active") || null;
+  if (localClient) {
+    const storedProgress = localStorage.getItem(`${STORAGE_KEY}:progress:${email}`);
+    progressState = storedProgress ? JSON.parse(storedProgress) : {};
+  }
+  return localClient;
 }
 
 function setupStudentPage() {
@@ -308,6 +328,8 @@ async function setupAdminPage() {
   document.getElementById("lessonForm")?.addEventListener("submit", async (event) => {
     event.preventDefault();
     const lesson = {
+      module_title: document.getElementById("lessonModule").value.trim() || "Модул 1",
+      module_order: Number(document.getElementById("lessonModuleOrder").value) || 1,
       title: document.getElementById("lessonTitle").value.trim(),
       url: document.getElementById("lessonUrl").value.trim(),
       description: document.getElementById("lessonDescription").value.trim(),
@@ -322,7 +344,9 @@ async function setupAdminPage() {
           lesson_title: lesson.title,
           lesson_url: lesson.url,
           lesson_description: lesson.description,
-          lesson_sort_order: lesson.sort_order
+          lesson_sort_order: lesson.sort_order,
+          lesson_module_title: lesson.module_title,
+          lesson_module_order: lesson.module_order
         });
         if (error) throw error;
         await loadRemoteAdminData();
@@ -423,6 +447,7 @@ function renderAdmin() {
           <button class="btn danger small" type="button" onclick="deleteLesson('${escapeHtml(lesson.id)}')">Изтрий</button>
         </span>
       </div>
+      <p class="muted">${escapeHtml(lesson.module_title || "Модул 1")}</p>
       <p class="muted">${escapeHtml(lesson.description || "Без описание")}</p>
       <p class="code">${escapeHtml(lesson.url || "Няма добавен видео линк")}</p>
     </article>
@@ -433,17 +458,50 @@ function renderLessons() {
   const list = document.getElementById("lessonList");
   if (!list) return;
 
-  list.innerHTML = state.lessons.map((lesson, index) => `
-    <article class="lesson ${lesson.id === currentLessonId ? "active" : ""}">
-      <button type="button" onclick="selectLesson('${escapeHtml(lesson.id)}')">
-        <div class="lesson-title">
-          <span>${index + 1}. ${escapeHtml(lesson.title)}</span>
-          <span>${lesson.url ? "Видео" : "Скоро"}</span>
+  const modules = new Map();
+  state.lessons.forEach((lesson) => {
+    const title = lesson.module_title || "Модул 1";
+    const key = `${lesson.module_order || 1}-${title}`;
+    if (!modules.has(key)) {
+      modules.set(key, {
+        title,
+        order: lesson.module_order || 1,
+        lessons: []
+      });
+    }
+    modules.get(key).lessons.push(lesson);
+  });
+
+  list.innerHTML = Array.from(modules.values()).map((module, moduleIndex) => {
+    const completedCount = module.lessons.filter((lesson) => progressState[lesson.id]).length;
+    return `
+      <details class="module-group" ${moduleIndex === 0 ? "open" : ""}>
+        <summary>
+          <span>${escapeHtml(module.title)}</span>
+          <small>${completedCount}/${module.lessons.length} изгледани</small>
+        </summary>
+        <div class="module-lessons">
+          ${module.lessons.map((lesson, index) => `
+            <article class="lesson ${lesson.id === currentLessonId ? "active" : ""}">
+              <div class="lesson-item">
+                <label class="completed-check" title="Маркирай като изгледано">
+                  <input type="checkbox" ${progressState[lesson.id] ? "checked" : ""} onchange="toggleLessonProgress('${escapeHtml(lesson.id)}', this.checked)">
+                  <span></span>
+                </label>
+                <button class="lesson-open" type="button" onclick="selectLesson('${escapeHtml(lesson.id)}')">
+                  <div class="lesson-title">
+                    <span>${index + 1}. ${escapeHtml(lesson.title)}</span>
+                    <span>${lesson.url ? "Видео" : "Скоро"}</span>
+                  </div>
+                  <p class="muted">${escapeHtml(lesson.description || "")}</p>
+                </button>
+              </div>
+            </article>
+          `).join("")}
         </div>
-        <p class="muted">${escapeHtml(lesson.description || "")}</p>
-      </button>
-    </article>
-  `).join("");
+      </details>
+    `;
+  }).join("");
 }
 
 function selectLesson(id) {
@@ -471,6 +529,32 @@ function selectLesson(id) {
 
 function copyEmail(email) {
   navigator.clipboard.writeText(email);
+}
+
+async function toggleLessonProgress(lessonId, completed) {
+  progressState[lessonId] = completed;
+  renderLessons();
+
+  if (!currentStudent) return;
+  if (!isRemoteMode) {
+    const key = `${STORAGE_KEY}:progress:${normalizeEmail(currentStudent.email)}`;
+    localStorage.setItem(key, JSON.stringify(progressState));
+    return;
+  }
+
+  try {
+    const { error } = await supabaseClient.rpc("set_lesson_progress", {
+      lookup_email: currentStudent.email,
+      target_lesson_id: lessonId,
+      is_completed: completed
+    });
+    if (error) throw error;
+  } catch (error) {
+    progressState[lessonId] = !completed;
+    renderLessons();
+    alert("Отметката не беше запазена. Опитай отново.");
+    console.error(error);
+  }
 }
 
 async function editClient(id) {
@@ -514,6 +598,10 @@ async function editClient(id) {
 async function editLesson(id) {
   const lesson = state.lessons.find((item) => item.id === id);
   if (!lesson) return;
+  const moduleTitle = prompt("Модул", lesson.module_title || "Модул 1");
+  if (moduleTitle === null) return;
+  const moduleOrder = prompt("Номер на модул", lesson.module_order || 1);
+  if (moduleOrder === null) return;
   const title = prompt("Заглавие на урока", lesson.title);
   if (title === null) return;
   const url = prompt("Bunny.net embed/video линк", lesson.url);
@@ -522,6 +610,8 @@ async function editLesson(id) {
   if (description === null) return;
 
   const updates = {
+    module_title: moduleTitle.trim() || "Модул 1",
+    module_order: Number(moduleOrder) || 1,
     title: title.trim() || lesson.title,
     url: url.trim(),
     description: description.trim()
@@ -535,7 +625,9 @@ async function editLesson(id) {
         lesson_id: id,
         lesson_title: updates.title,
         lesson_url: updates.url,
-        lesson_description: updates.description
+        lesson_description: updates.description,
+        lesson_module_title: updates.module_title,
+        lesson_module_order: updates.module_order
       });
       if (error) throw error;
       await loadRemoteAdminData();

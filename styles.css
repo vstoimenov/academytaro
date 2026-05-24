@@ -223,9 +223,97 @@ textarea:focus {
   gap: 12px;
 }
 
+.module-group {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+  background: rgba(21, 18, 33, 0.64);
+}
+
+.module-group summary {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: center;
+  padding: 14px 16px;
+  color: #fff;
+  cursor: pointer;
+  font-weight: 900;
+}
+
+.module-group summary small {
+  color: var(--gold-light);
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+
+.module-lessons {
+  display: grid;
+  gap: 10px;
+  padding: 0 12px 12px;
+}
+
 .client-row,
 .lesson {
   padding: 16px;
+}
+
+.module-lessons .lesson {
+  padding: 12px;
+}
+
+.lesson-item {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+}
+
+.lesson-open {
+  min-width: 0;
+}
+
+.completed-check {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  margin-top: 2px;
+  cursor: pointer;
+}
+
+.completed-check input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  min-height: 0;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.completed-check span {
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--panel-soft);
+}
+
+.completed-check input:checked + span {
+  border-color: rgba(46, 204, 113, 0.7);
+  background: rgba(46, 204, 113, 0.18);
+}
+
+.completed-check input:checked + span::after {
+  content: "";
+  position: absolute;
+  width: 11px;
+  height: 6px;
+  border-left: 2px solid #b9ffd5;
+  border-bottom: 2px solid #b9ffd5;
+  transform: translate(6px, 7px) rotate(-45deg);
 }
 
 .client-main,

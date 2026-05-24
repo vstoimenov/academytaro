@@ -82,8 +82,16 @@
             <form id="lessonForm" class="panel stack">
               <h2>Добави видео урок</h2>
               <div class="field">
+                <label for="lessonModule">Модул</label>
+                <input id="lessonModule" type="text" placeholder="Модул 1: Основи" required>
+              </div>
+              <div class="field">
+                <label for="lessonModuleOrder">Номер на модул</label>
+                <input id="lessonModuleOrder" type="number" min="1" value="1" required>
+              </div>
+              <div class="field">
                 <label for="lessonTitle">Заглавие</label>
-                <input id="lessonTitle" type="text" placeholder="Модул 1: Основи" required>
+                <input id="lessonTitle" type="text" placeholder="Урок 1: Добре дошла" required>
               </div>
               <div class="field">
                 <label for="lessonUrl">Bunny.net embed/video линк</label>
