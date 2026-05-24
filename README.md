@@ -1,48 +1,22 @@
-# TaroAcademy Platform
+# TaroAcademy
 
-Платформа за клиентски достъп до видео уроци и отделен CRM/admin екран.
+Качи точно тази папка в GitHub.
 
-## Страници
+Файловете `index.html`, `app.js`, `styles.css` и `vercel.json` трябва да са директно в root-а на repository-то, не във вложена папка.
 
-- `index.html` - клиентска зона. Клиентът влиза с имейла от покупката.
-- `admin.html` - CRM за добавяне на клиенти и Vimeo уроци.
+Vercel настройки:
 
-## Важно за реални клиенти
+- Framework Preset: Other
+- Root Directory: празно
+- Build Command: празно
+- Output Directory: празно
 
-Платформата вече поддържа два режима:
+Адреси:
 
-1. **Supabase режим** - реална база данни, подходяща за клиенти.
-2. **Локален тестов режим** - ако `config.js` не е попълнен, данните се пазят само в браузъра.
+- `/` - клиентска зона
+- `/admin` - CRM
 
-За реални клиенти използвай Supabase режима.
+Админ достъп:
 
-## Настройка със Supabase
-
-1. Създай Supabase проект.
-2. В Supabase отвори `SQL Editor`.
-3. Постави и изпълни съдържанието на `supabase-schema.sql`.
-4. В Supabase отвори `Authentication` и създай админ потребител:
-
-   - Имейл: `viktor.stoimenov12@gmail.com`
-   - Парола: избери силна парола
-
-5. В `config.js` замени:
-
-   - `PASTE_SUPABASE_URL_HERE`
-   - `PASTE_SUPABASE_ANON_KEY_HERE`
-
-6. Качи файловете във Vercel.
-
-## Адреси
-
-- Клиенти: `/`
-- CRM: `/admin.html`
-- Кратък CRM адрес: `/admin`
-
-## Checkout redirect
-
-След покупка можеш да пращаш клиента към:
-
-`https://your-domain.com/?email=client@email.com`
-
-Ако имейлът е активен в CRM-а, клиентът получава достъп.
+- Имейл: `viktor.stoimenov12@gmail.com`
+- Парола: `TaroAcademy2026!`

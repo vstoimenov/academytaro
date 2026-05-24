@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TaroAcademy - Видео уроци</title>
+  <title>TaroAcademy</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Raleway:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -13,55 +13,151 @@
   <div class="app">
     <header class="top">
       <div class="brand">
-        <strong>TaroAcademy</strong>
-        <span>Зона за видео уроци</span>
+        <strong id="brandTitle">TaroAcademy</strong>
+        <span id="brandSubtitle">Зона за видео уроци</span>
       </div>
-      <a class="btn secondary small" href="admin.html">Админ вход</a>
+      <a class="btn secondary small hidden" id="studentLink" href="/">Клиентска зона</a>
     </header>
 
     <main>
-      <section id="studentLogin" class="grid">
-        <div class="panel">
-          <h1>Вход към курса</h1>
-          <p class="muted">Влез с имейла, с който си закупила курса.</p>
-          <div class="notice">Въведи имейла от покупката. Ако достъпът липсва, пиши на support@taroacademy.online.</div>
-        </div>
-        <form id="studentLoginForm" class="panel stack">
-          <div class="field">
-            <label for="studentEmail">Имейл</label>
-            <input id="studentEmail" type="email" placeholder="client@email.com" required>
+      <section id="studentPage">
+        <section id="studentLogin" class="grid">
+          <div class="panel">
+            <h1>Вход към курса</h1>
+            <p class="muted">Влез с имейла, с който си закупила курса.</p>
+            <div class="notice">Демо вход: demo@taroacademy.online</div>
           </div>
-          <button class="btn" type="submit">Влез в курса</button>
-          <p id="studentError" class="muted"></p>
-        </form>
+          <form id="studentLoginForm" class="panel stack">
+            <div class="field">
+              <label for="studentEmail">Имейл</label>
+              <input id="studentEmail" type="email" placeholder="client@email.com" required>
+            </div>
+            <button class="btn" type="submit">Влез в курса</button>
+            <p id="studentError" class="muted"></p>
+          </form>
+        </section>
+
+        <section id="studentCourse" class="student-layout hidden">
+          <aside class="panel">
+            <div class="actions" style="justify-content:space-between; margin-bottom:14px;">
+              <div>
+                <h2 style="margin-bottom:4px;">Уроци</h2>
+                <p class="muted" id="studentName"></p>
+              </div>
+              <button class="btn secondary small" type="button" id="logoutStudent">Изход</button>
+            </div>
+            <div id="lessonList" class="lesson-list"></div>
+          </aside>
+
+          <section class="panel">
+            <h1 id="currentLessonTitle">Избери урок</h1>
+            <p class="muted" id="currentLessonDescription"></p>
+            <div class="video-shell" style="margin-top:18px;">
+              <div id="videoPlaceholder" class="video-placeholder">Когато добавиш Vimeo линк, видеото ще се появи тук.</div>
+              <iframe id="videoFrame" class="hidden" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>
+            </div>
+          </section>
+        </section>
       </section>
 
-      <section id="studentCourse" class="student-layout hidden">
-        <aside class="panel">
-          <div class="actions" style="justify-content:space-between; margin-bottom:14px;">
-            <div>
-              <h2 style="margin-bottom:4px;">Уроци</h2>
-              <p class="muted" id="studentName"></p>
-            </div>
-            <button class="btn secondary small" type="button" id="logoutStudent">Изход</button>
+      <section id="adminPage" class="hidden">
+        <section id="adminLogin" class="grid">
+          <div class="panel">
+            <h1>CRM вход</h1>
+            <p class="muted">Тук добавяш клиентите, които са закупили курса, и Vimeo линковете към уроците.</p>
+            <div class="notice">Админ: viktor.stoimenov12@gmail.com</div>
           </div>
-          <div id="lessonList" class="lesson-list"></div>
-        </aside>
+          <form id="adminLoginForm" class="panel stack">
+            <div class="field">
+              <label for="adminEmail">Админ имейл</label>
+              <input id="adminEmail" type="email" placeholder="viktor.stoimenov12@gmail.com" required>
+            </div>
+            <div class="field">
+              <label for="adminPassword">Парола</label>
+              <input id="adminPassword" type="password" placeholder="Въведи парола" required>
+            </div>
+            <button class="btn" type="submit">Отвори CRM</button>
+            <p id="adminError" class="muted"></p>
+          </form>
+        </section>
 
-        <section class="panel">
-          <h1 id="currentLessonTitle">Избери урок</h1>
-          <p class="muted" id="currentLessonDescription"></p>
-          <div class="video-shell" style="margin-top:18px;">
-            <div id="videoPlaceholder" class="video-placeholder">Когато добавиш Vimeo линк, видеото ще се появи тук.</div>
-            <iframe id="videoFrame" class="hidden" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>
+        <section id="adminDashboard" class="hidden">
+          <div class="stats">
+            <div class="stat">
+              <span>Всички клиенти</span>
+              <strong id="statClients">0</strong>
+            </div>
+            <div class="stat">
+              <span>Активни</span>
+              <strong id="statActive">0</strong>
+            </div>
+            <div class="stat">
+              <span>Видео уроци</span>
+              <strong id="statLessons">0</strong>
+            </div>
+          </div>
+
+          <div class="grid">
+            <aside class="stack">
+              <form id="clientForm" class="panel stack">
+                <h2>Добави клиент</h2>
+                <div class="field">
+                  <label for="clientName">Име</label>
+                  <input id="clientName" type="text" placeholder="Мария Иванова" required>
+                </div>
+                <div class="field">
+                  <label for="clientEmail">Имейл от покупката</label>
+                  <input id="clientEmail" type="email" placeholder="client@email.com" required>
+                </div>
+                <div class="field">
+                  <label for="clientStatus">Статус</label>
+                  <select id="clientStatus">
+                    <option value="active">Активен</option>
+                    <option value="pending">Чака достъп</option>
+                    <option value="paused">Пауза</option>
+                  </select>
+                </div>
+                <button class="btn" type="submit">Запази клиент</button>
+              </form>
+
+              <form id="lessonForm" class="panel stack">
+                <h2>Добави Vimeo урок</h2>
+                <div class="field">
+                  <label for="lessonTitle">Заглавие</label>
+                  <input id="lessonTitle" type="text" placeholder="Модул 1: Основи" required>
+                </div>
+                <div class="field">
+                  <label for="lessonUrl">Vimeo линк</label>
+                  <input id="lessonUrl" type="url" placeholder="https://vimeo.com/..." required>
+                </div>
+                <div class="field">
+                  <label for="lessonDescription">Кратко описание</label>
+                  <textarea id="lessonDescription" placeholder="Какво ще научи клиентът в този урок"></textarea>
+                </div>
+                <button class="btn" type="submit">Добави урок</button>
+              </form>
+            </aside>
+
+            <section class="stack">
+              <div class="panel">
+                <div class="actions" style="justify-content:space-between; margin-bottom:16px;">
+                  <h2 style="margin-bottom:0;">Клиенти</h2>
+                  <button class="btn secondary small" id="exportClients" type="button">Експорт</button>
+                </div>
+                <div id="clientList" class="client-list"></div>
+              </div>
+
+              <div class="panel">
+                <h2>Видео библиотека</h2>
+                <div id="adminLessonList" class="lesson-list"></div>
+              </div>
+            </section>
           </div>
         </section>
       </section>
     </main>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="config.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
