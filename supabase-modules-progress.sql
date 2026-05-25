@@ -1,6 +1,8 @@
 alter table public.lessons
   add column if not exists module_title text not null default 'Модул 1',
-  add column if not exists module_order integer not null default 1;
+  add column if not exists module_order integer not null default 1,
+  add column if not exists resource_title text not null default '',
+  add column if not exists resource_url text not null default '';
 
 create table if not exists public.lesson_progress (
   client_id uuid not null references public.clients(id) on delete cascade,

@@ -194,7 +194,7 @@ textarea:focus {
 
 .stats {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
   gap: 14px;
   margin-bottom: 18px;
 }
@@ -378,6 +378,67 @@ textarea:focus {
   word-break: break-word;
 }
 
+.resource-box {
+  margin-top: 16px;
+}
+
+.resource-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 46px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  color: var(--bg);
+  background: linear-gradient(135deg, var(--gold-light), var(--gold));
+  font-weight: 900;
+  text-decoration: none;
+  box-shadow: 0 10px 26px rgba(212, 168, 67, 0.2);
+}
+
+.resource-link:hover {
+  transform: translateY(-1px);
+}
+
+.resource-link.small-link {
+  min-height: 38px;
+  padding: 9px 13px;
+  white-space: nowrap;
+}
+
+.bonus-section {
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+
+.bonus-section h2 {
+  font-size: 1.7rem;
+  margin-bottom: 6px;
+}
+
+.bonus-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.bonus-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(212, 168, 67, 0.06);
+}
+
+.bonus-item h3 {
+  font-size: 1.22rem;
+  margin-bottom: 4px;
+}
+
 .video-shell {
   overflow: hidden;
   border: 1px solid var(--line);
@@ -430,5 +491,13 @@ textarea:focus {
   .student-layout,
   .stats {
     grid-template-columns: 1fr;
+  }
+
+  .bonus-item {
+    grid-template-columns: 1fr;
+  }
+
+  .resource-link.small-link {
+    width: 100%;
   }
 }

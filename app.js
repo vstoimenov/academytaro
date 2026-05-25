@@ -20,7 +20,9 @@ const seedState = {
       description: "Тук ще стои първото Bunny.net видео. Добави линк от админ екрана.",
       sort_order: 1,
       module_title: "Модул 1: Основи",
-      module_order: 1
+      module_order: 1,
+      resource_title: "",
+      resource_url: ""
     },
     {
       id: crypto.randomUUID(),
@@ -29,12 +31,44 @@ const seedState = {
       description: "Кратък стартов урок за първите практически стъпки.",
       sort_order: 2,
       module_title: "Модул 1: Основи",
-      module_order: 1
+      module_order: 1,
+      resource_title: "",
+      resource_url: ""
+    }
+  ],
+  bonuses: [
+    {
+      id: crypto.randomUUID(),
+      title: "Таро дневник шаблон",
+      description: "PDF шаблон за лични записки и проследяване на четенията.",
+      url: "",
+      sort_order: 1,
+      is_active: true
+    },
+    {
+      id: crypto.randomUUID(),
+      title: "Справочник за символите",
+      description: "Бърз справочник за основните символи в картите.",
+      url: "",
+      sort_order: 2,
+      is_active: true
+    },
+    {
+      id: crypto.randomUUID(),
+      title: "5-те грешки на начинаещия",
+      description: "Кратък PDF бонус за най-честите капани в началото.",
+      url: "",
+      sort_order: 3,
+      is_active: true
     }
   ]
 };
 
 let state = loadLocalState();
+if (!Array.isArray(state.bonuses)) {
+  state.bonuses = structuredClone(seedState.bonuses);
+  saveLocalState();
+}
 let currentStudent = null;
 let currentLessonId = state.lessons[0]?.id || null;
 let supabaseClient = null;
@@ -117,7 +151,7 @@ function setMessage(id, message) {
 async function loadRemoteLessons() {
   const { data, error } = await supabaseClient
     .from("lessons")
-    .select("id,title,url,description,sort_order,module_title,module_order")
+    .select("id,title,url,description,sort_order,module_title,module_order,resource_title,resource_url")
     .order("module_order", { ascending: true })
     .order("sort_order", { ascending: true });
 
@@ -134,9 +168,17 @@ async function loadRemoteProgress(email) {
   progressState = Object.fromEntries((data || []).map((item) => [item.lesson_id, item.completed]));
 }
 
+async function loadRemoteBonuses(email) {
+  const { data, error } = await supabaseClient.rpc("get_bonus_resources", {
+    lookup_email: email
+  });
+  if (error) throw error;
+  state.bonuses = data || [];
+}
+
 async function loadRemoteAdminData() {
   if (!adminCredentials) throw new Error("Missing admin credentials");
-  const [clientsResponse, lessonsResponse] = await Promise.all([
+  const [clientsResponse, lessonsResponse, bonusesResponse] = await Promise.all([
     supabaseClient.rpc("admin_list_clients", {
       admin_email: adminCredentials.email,
       admin_password: adminCredentials.password
@@ -144,14 +186,20 @@ async function loadRemoteAdminData() {
     supabaseClient.rpc("admin_list_lessons", {
       admin_email: adminCredentials.email,
       admin_password: adminCredentials.password
+    }),
+    supabaseClient.rpc("admin_list_bonuses", {
+      admin_email: adminCredentials.email,
+      admin_password: adminCredentials.password
     })
   ]);
 
   if (clientsResponse.error) throw clientsResponse.error;
   if (lessonsResponse.error) throw lessonsResponse.error;
+  if (bonusesResponse.error) throw bonusesResponse.error;
 
   state.clients = clientsResponse.data || [];
   state.lessons = lessonsResponse.data || [];
+  state.bonuses = bonusesResponse.data || [];
   currentLessonId = state.lessons[0]?.id || null;
 }
 
@@ -159,6 +207,7 @@ async function saveAndRender() {
   if (!isRemoteMode) saveLocalState();
   renderAdmin();
   renderLessons();
+  renderBonuses();
 }
 
 function showStudentCourse(client) {
@@ -168,6 +217,7 @@ function showStudentCourse(client) {
   const name = document.getElementById("studentName");
   if (name) name.textContent = client.name;
   renderLessons();
+  renderBonuses();
   selectLesson(currentLessonId);
 }
 
@@ -183,6 +233,7 @@ async function handleStudentLogin(email) {
 
     await loadRemoteLessons();
     await loadRemoteProgress(email);
+    await loadRemoteBonuses(email);
     return {
       id: access.client_id,
       name: access.client_name,
@@ -333,6 +384,8 @@ async function setupAdminPage() {
       title: document.getElementById("lessonTitle").value.trim(),
       url: document.getElementById("lessonUrl").value.trim(),
       description: document.getElementById("lessonDescription").value.trim(),
+      resource_title: document.getElementById("lessonResourceTitle").value.trim(),
+      resource_url: document.getElementById("lessonResourceUrl").value.trim(),
       sort_order: state.lessons.length + 1
     };
 
@@ -346,7 +399,9 @@ async function setupAdminPage() {
           lesson_description: lesson.description,
           lesson_sort_order: lesson.sort_order,
           lesson_module_title: lesson.module_title,
-          lesson_module_order: lesson.module_order
+          lesson_module_order: lesson.module_order,
+          lesson_resource_title: lesson.resource_title,
+          lesson_resource_url: lesson.resource_url
         });
         if (error) throw error;
         await loadRemoteAdminData();
@@ -359,6 +414,42 @@ async function setupAdminPage() {
       await saveAndRender();
     } catch (error) {
       alert("Урокът не беше запазен. Провери видео линка и настройките.");
+      console.error(error);
+    }
+  });
+
+  document.getElementById("bonusForm")?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const bonus = {
+      title: document.getElementById("bonusTitle").value.trim(),
+      description: document.getElementById("bonusDescription").value.trim(),
+      url: document.getElementById("bonusUrl").value.trim(),
+      sort_order: Number(document.getElementById("bonusOrder").value) || state.bonuses.length + 1,
+      is_active: document.getElementById("bonusStatus").value === "active"
+    };
+
+    try {
+      if (isRemoteMode) {
+        const { error } = await supabaseClient.rpc("admin_insert_bonus", {
+          admin_email: adminCredentials.email,
+          admin_password: adminCredentials.password,
+          bonus_title: bonus.title,
+          bonus_description: bonus.description,
+          bonus_url: bonus.url,
+          bonus_sort_order: bonus.sort_order,
+          bonus_is_active: bonus.is_active
+        });
+        if (error) throw error;
+        await loadRemoteAdminData();
+      } else {
+        state.bonuses.push({ ...bonus, id: crypto.randomUUID() });
+      }
+
+      event.target.reset();
+      document.getElementById("bonusOrder").value = "1";
+      await saveAndRender();
+    } catch (error) {
+      alert("Бонусът не беше запазен. Провери линка и настройките.");
       console.error(error);
     }
   });
@@ -379,7 +470,8 @@ async function setupAdminPage() {
     const backup = {
       exportedAt: new Date().toISOString(),
       clients: state.clients,
-      lessons: state.lessons
+      lessons: state.lessons,
+      bonuses: state.bonuses
     };
     const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
     const link = document.createElement("a");
@@ -401,6 +493,7 @@ async function setupAdminPage() {
       }
       state.clients = backup.clients;
       state.lessons = backup.lessons;
+      state.bonuses = Array.isArray(backup.bonuses) ? backup.bonuses : [];
       currentLessonId = state.lessons[0]?.id || null;
       await saveAndRender();
       alert("Backup файлът е зареден успешно.");
@@ -420,6 +513,8 @@ function renderAdmin() {
   statClients.textContent = state.clients.length;
   document.getElementById("statActive").textContent = state.clients.filter((client) => client.status === "active").length;
   document.getElementById("statLessons").textContent = state.lessons.length;
+  const statBonuses = document.getElementById("statBonuses");
+  if (statBonuses) statBonuses.textContent = state.bonuses.length;
 
   document.getElementById("clientList").innerHTML = state.clients.map((client) => `
     <article class="client-row">
@@ -450,8 +545,27 @@ function renderAdmin() {
       <p class="muted">${escapeHtml(lesson.module_title || "Модул 1")}</p>
       <p class="muted">${escapeHtml(lesson.description || "Без описание")}</p>
       <p class="code">${escapeHtml(lesson.url || "Няма добавен видео линк")}</p>
+      ${lesson.resource_url ? `<p class="code">Материал: ${escapeHtml(lesson.resource_title || "Отвори материал")} - ${escapeHtml(lesson.resource_url)}</p>` : ""}
     </article>
   `).join("");
+
+  const adminBonusList = document.getElementById("adminBonusList");
+  if (adminBonusList) {
+    adminBonusList.innerHTML = state.bonuses.map((bonus, index) => `
+      <article class="lesson">
+        <div class="lesson-title">
+          <span>${index + 1}. ${escapeHtml(bonus.title)}</span>
+          <span class="actions">
+            <button class="btn secondary small" type="button" onclick="editBonus('${escapeHtml(bonus.id)}')">Редактирай</button>
+            <button class="btn danger small" type="button" onclick="deleteBonus('${escapeHtml(bonus.id)}')">Изтрий</button>
+          </span>
+        </div>
+        <p class="muted">${escapeHtml(bonus.description || "Без описание")}</p>
+        <p class="muted">${bonus.is_active === false ? "Скрит за курсистите" : "Активен бонус"}</p>
+        <p class="code">${escapeHtml(bonus.url || "Няма добавен PDF/външен линк")}</p>
+      </article>
+    `).join("");
+  }
 }
 
 function renderLessons() {
@@ -504,6 +618,34 @@ function renderLessons() {
   }).join("");
 }
 
+function renderBonuses() {
+  const list = document.getElementById("bonusList");
+  if (!list) return;
+
+  const visibleBonuses = state.bonuses
+    .filter((bonus) => bonus.is_active !== false)
+    .sort((a, b) => (a.sort_order || 1) - (b.sort_order || 1));
+
+  if (!visibleBonuses.length) {
+    list.innerHTML = `<p class="muted">Бонус материалите ще се появят тук.</p>`;
+    return;
+  }
+
+  list.innerHTML = visibleBonuses.map((bonus) => `
+    <article class="bonus-item">
+      <div>
+        <h3>${escapeHtml(bonus.title)}</h3>
+        <p class="muted">${escapeHtml(bonus.description || "")}</p>
+      </div>
+      ${bonus.url ? `
+        <a class="resource-link small-link" href="${escapeHtml(bonus.url)}" target="_blank" rel="noopener">
+          Отвори
+        </a>
+      ` : `<span class="badge pending">Скоро</span>`}
+    </article>
+  `).join("");
+}
+
 function selectLesson(id) {
   currentLessonId = id;
   const lesson = state.lessons.find((item) => item.id === id) || state.lessons[0];
@@ -511,6 +653,21 @@ function selectLesson(id) {
 
   document.getElementById("currentLessonTitle").textContent = lesson.title;
   document.getElementById("currentLessonDescription").textContent = lesson.description || "";
+
+  const resourceBox = document.getElementById("lessonResource");
+  if (resourceBox) {
+    if (lesson.resource_url) {
+      resourceBox.innerHTML = `
+        <a class="resource-link" href="${escapeHtml(lesson.resource_url)}" target="_blank" rel="noopener">
+          ${escapeHtml(lesson.resource_title || "Отвори материал")}
+        </a>
+      `;
+      resourceBox.classList.remove("hidden");
+    } else {
+      resourceBox.innerHTML = "";
+      resourceBox.classList.add("hidden");
+    }
+  }
 
   const embed = videoToEmbed(lesson.url);
   const frame = document.getElementById("videoFrame");
@@ -608,13 +765,19 @@ async function editLesson(id) {
   if (url === null) return;
   const description = prompt("Кратко описание", lesson.description || "");
   if (description === null) return;
+  const resourceTitle = prompt("Име на PDF/тест линк", lesson.resource_title || "");
+  if (resourceTitle === null) return;
+  const resourceUrl = prompt("PDF или външен линк", lesson.resource_url || "");
+  if (resourceUrl === null) return;
 
   const updates = {
     module_title: moduleTitle.trim() || "Модул 1",
     module_order: Number(moduleOrder) || 1,
     title: title.trim() || lesson.title,
     url: url.trim(),
-    description: description.trim()
+    description: description.trim(),
+    resource_title: resourceTitle.trim(),
+    resource_url: resourceUrl.trim()
   };
 
   try {
@@ -627,7 +790,9 @@ async function editLesson(id) {
         lesson_url: updates.url,
         lesson_description: updates.description,
         lesson_module_title: updates.module_title,
-        lesson_module_order: updates.module_order
+        lesson_module_order: updates.module_order,
+        lesson_resource_title: updates.resource_title,
+        lesson_resource_url: updates.resource_url
       });
       if (error) throw error;
       await loadRemoteAdminData();
@@ -637,6 +802,52 @@ async function editLesson(id) {
     await saveAndRender();
   } catch (error) {
     alert("Урокът не беше редактиран.");
+    console.error(error);
+  }
+}
+
+async function editBonus(id) {
+  const bonus = state.bonuses.find((item) => item.id === id);
+  if (!bonus) return;
+  const title = prompt("Име на бонуса", bonus.title);
+  if (title === null) return;
+  const description = prompt("Кратко описание", bonus.description || "");
+  if (description === null) return;
+  const url = prompt("PDF или външен линк", bonus.url || "");
+  if (url === null) return;
+  const sortOrder = prompt("Подредба", bonus.sort_order || 1);
+  if (sortOrder === null) return;
+  const status = prompt("Статус: active или hidden", bonus.is_active === false ? "hidden" : "active");
+  if (status === null) return;
+
+  const updates = {
+    title: title.trim() || bonus.title,
+    description: description.trim(),
+    url: url.trim(),
+    sort_order: Number(sortOrder) || 1,
+    is_active: status.trim() !== "hidden"
+  };
+
+  try {
+    if (isRemoteMode) {
+      const { error } = await supabaseClient.rpc("admin_update_bonus", {
+        admin_email: adminCredentials.email,
+        admin_password: adminCredentials.password,
+        bonus_id: id,
+        bonus_title: updates.title,
+        bonus_description: updates.description,
+        bonus_url: updates.url,
+        bonus_sort_order: updates.sort_order,
+        bonus_is_active: updates.is_active
+      });
+      if (error) throw error;
+      await loadRemoteAdminData();
+    } else {
+      Object.assign(bonus, updates);
+    }
+    await saveAndRender();
+  } catch (error) {
+    alert("Бонусът не беше редактиран.");
     console.error(error);
   }
 }
@@ -684,8 +895,30 @@ async function deleteLesson(id) {
   }
 }
 
+async function deleteBonus(id) {
+  if (!confirm("Да изтрия ли този бонус?")) return;
+  try {
+    if (isRemoteMode) {
+      const { error } = await supabaseClient.rpc("admin_delete_bonus", {
+        admin_email: adminCredentials.email,
+        admin_password: adminCredentials.password,
+        bonus_id: id
+      });
+      if (error) throw error;
+      await loadRemoteAdminData();
+    } else {
+      state.bonuses = state.bonuses.filter((bonus) => bonus.id !== id);
+    }
+    await saveAndRender();
+  } catch (error) {
+    alert("Бонусът не беше изтрит.");
+    console.error(error);
+  }
+}
+
 initSupabase();
 setupStudentPage();
 setupAdminPage();
 renderAdmin();
 renderLessons();
+renderBonuses();

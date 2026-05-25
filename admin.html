@@ -54,6 +54,10 @@
             <span>Видео уроци</span>
             <strong id="statLessons">0</strong>
           </div>
+          <div class="stat">
+            <span>Бонуси</span>
+            <strong id="statBonuses">0</strong>
+          </div>
         </div>
 
         <div class="grid">
@@ -101,7 +105,43 @@
                 <label for="lessonDescription">Кратко описание</label>
                 <textarea id="lessonDescription" placeholder="Какво ще научи клиентът в този урок"></textarea>
               </div>
+              <div class="field">
+                <label for="lessonResourceTitle">Име на PDF/тест линк</label>
+                <input id="lessonResourceTitle" type="text" placeholder="Свали PDF ръководство">
+              </div>
+              <div class="field">
+                <label for="lessonResourceUrl">PDF или външен линк</label>
+                <input id="lessonResourceUrl" type="url" placeholder="https://...">
+              </div>
               <button class="btn" type="submit">Добави урок</button>
+            </form>
+
+            <form id="bonusForm" class="panel stack">
+              <h2>Добави бонус PDF</h2>
+              <div class="field">
+                <label for="bonusTitle">Име на бонуса</label>
+                <input id="bonusTitle" type="text" placeholder="Таро дневник шаблон" required>
+              </div>
+              <div class="field">
+                <label for="bonusDescription">Кратко описание</label>
+                <textarea id="bonusDescription" placeholder="Какво получава курсистът"></textarea>
+              </div>
+              <div class="field">
+                <label for="bonusUrl">PDF или външен линк</label>
+                <input id="bonusUrl" type="url" placeholder="https://..." required>
+              </div>
+              <div class="field">
+                <label for="bonusOrder">Подредба</label>
+                <input id="bonusOrder" type="number" min="1" value="1" required>
+              </div>
+              <div class="field">
+                <label for="bonusStatus">Статус</label>
+                <select id="bonusStatus">
+                  <option value="active">Активен</option>
+                  <option value="hidden">Скрит</option>
+                </select>
+              </div>
+              <button class="btn" type="submit">Добави бонус</button>
             </form>
           </aside>
 
@@ -122,6 +162,11 @@
             <div class="panel">
               <h2>Видео библиотека</h2>
               <div id="adminLessonList" class="lesson-list"></div>
+            </div>
+
+            <div class="panel">
+              <h2>Бонуси</h2>
+              <div id="adminBonusList" class="lesson-list"></div>
             </div>
           </section>
         </div>
